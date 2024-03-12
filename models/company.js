@@ -52,6 +52,7 @@ class Company {
                   logo_url AS "logoUrl"
            FROM companies`;
 
+    let whereExpressions = [];
     let queryValues = [];
     const { minEmployees, maxEmployees, name } = searchFilters;
 
@@ -61,14 +62,21 @@ class Company {
 
     if (minEmployees !== undefined) {
       queryValues.push(minEmployees);
+      whereExpressions.push(`num_employees >= $${queryValues.length}`);
     }
 
     if (maxEmployees !== undefined) {
       queryValues.push(maxEmployees);
+      whereExpressions.push(`num_employees <= $${queryValues.length}`);
     }
 
     if (name) {
       queryValues.push(`%${name}%`);
+      whereExpressions.push(`name ILIKE $${queryValues.length}`);
+    }
+
+    if (whereExpressions.length > 0) {
+      query += " WHERE " + whereExpressions.join(" AND ");
     }
 
     query += " ORDER BY name";
