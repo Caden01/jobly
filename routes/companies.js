@@ -11,6 +11,7 @@ const Company = require("../models/company");
 
 const companyNewSchema = require("../schemas/companyNew.json");
 const companyUpdateSchema = require("../schemas/companyUpdate.json");
+const companySearchSchema = require("../schemas/companySearch.json");
 const { underline } = require("colors");
 const { TokenExpiredError } = require("jsonwebtoken");
 
@@ -51,7 +52,6 @@ router.post("/", ensureAdmin, async function (req, res, next) {
  * Authorization required: none
  */
 
-// TODO: Add validation and create new schema for company search
 router.get("/", async function (req, res, next) {
   const query = req.query;
 
@@ -62,6 +62,12 @@ router.get("/", async function (req, res, next) {
     query.maxEmployees = +query.maxEmployees;
 
   try {
+    const validator = jsonschema.validate(query, companySearchSchema);
+    if (!validator.valid) {
+      const errors = validator.errors.map((e) => e.stack);
+      throw new BadRequestError(errors);
+    }
+
     const companies = await Company.findAll(query);
     return res.json({ companies });
   } catch (err) {
