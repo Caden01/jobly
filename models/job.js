@@ -5,6 +5,13 @@ const { NotFoundError } = require("../expressError");
 const { sqlForPartialUpdate } = require("../helpers/sql");
 
 class Job {
+  /** Create a job (from data), update db, return new job data.
+   *
+   * data should be { title, salary, equity, companyHandle }
+   *
+   * Returns { id, title, salary, equity, companyHandle }
+   **/
+
   static async create(data) {
     const result = await db.query(
       `INSERT INTO jobs (title,
@@ -19,6 +26,16 @@ class Job {
 
     return job;
   }
+
+  /** Find all jobs.
+   *
+   * searchFilters (all optional):
+   * minSalary
+   * hasEquity
+   * title
+   *
+   * Return [{ id, title, salary, equity, companyHandle, companyName }, ...]
+   * */
 
   static async findAll({ minSalary, hasEquity, title } = {}) {
     const query = `SELECT j.id,
@@ -55,6 +72,14 @@ class Job {
     return jobsRes.rows;
   }
 
+  /** Returns data from given job id.
+   *
+   * Returns { id, title, salary, equity, companyHandle, company }
+   * where company is { handle, name, description, numEmployees, logoUrl }
+   *
+   * Throw NotFoundError if not NotFoundError
+   * */
+
   static async get(id) {
     const jobRes = await db.query(
       `SELECT id,
@@ -73,6 +98,15 @@ class Job {
 
     return job;
   }
+
+  /** Only updates job data with provided fields.
+   *
+   * Data can include { title, salary, equity }
+   *
+   * Returns { id, title, salary, equity, companyHandle }
+   *
+   * Throws NotFoundError if not found.
+   **/
 
   static async update(id, data) {
     const { setCols, values } = sqlForPartialUpdate(data, {});
@@ -94,6 +128,11 @@ class Job {
 
     return job;
   }
+
+  /** Delete given job from database and returns undefined
+   *
+   * Throws NotFoundError if company not found.
+   * */
 
   static async remove(id) {
     const result = await db.query(
