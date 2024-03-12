@@ -19,8 +19,8 @@ class Job {
                          equity,
                          company_handle)
         VALUES ($1, $2, $3, $4)
-        RETURNING id,title, salary, equity, company_handle AS "companyHandle"`,
-      [data.tilte, data.salary, data.equity, data.companyHandle],
+        RETURNING id ,title, salary, equity, company_handle AS "companyHandle"`,
+      [data.title, data.salary, data.equity, data.companyHandle],
     );
     let job = result.rows[0];
 
@@ -38,11 +38,12 @@ class Job {
    * */
 
   static async findAll({ minSalary, hasEquity, title } = {}) {
-    const query = `SELECT j.id,
+    let query = `SELECT j.id,
                   j.title,
                   j.salary,
                   j.equity,
-                  j.company_handle AS "companyName"
+                  j.company_handle AS "companyHandle",
+                  c.name AS "companyName"
            FROM jobs j
             LEFT JOIN companies AS c ON c.handle = j.company_handle`;
 
@@ -51,7 +52,7 @@ class Job {
 
     if (minSalary !== undefined) {
       queryValues.push(minSalary);
-      whereExpressions.push(`salary >= $${queryValues.lenght}`);
+      whereExpressions.push(`salary >= $${queryValues.length}`);
     }
 
     if (hasEquity === true) {
@@ -96,6 +97,20 @@ class Job {
 
     if (!job) throw new NotFoundError(`No job: ${id}`);
 
+    const companiesRes = await db.query(
+      `SELECT handle,
+              name,
+              description,
+              num_employees AS "numEmployees",
+              logo_url AS "logoUrl"
+       FROM companies 
+       WHERE handle = $1`,
+      [job.companyHandle],
+    );
+
+    delete job.companyHandle;
+    job.company = companiesRes.rows[0];
+
     return job;
   }
 
@@ -115,7 +130,7 @@ class Job {
 
     const querySql = `UPDATE jobs 
                       SET ${setCols} 
-                      WHERE handle = ${idVarIdx} 
+                      WHERE id = ${idVarIdx} 
                       RETURNING id, 
                                 title, 
                                 salary, 
@@ -124,7 +139,7 @@ class Job {
     const result = await db.query(querySql, [...values, id]);
     const job = result.rows[0];
 
-    if (!job) throw new NotFoundError(`No job: ${handle}`);
+    if (!job) throw new NotFoundError(`No job: ${id}`);
 
     return job;
   }
@@ -138,7 +153,7 @@ class Job {
     const result = await db.query(
       `DELETE
            FROM jobs 
-           WHERE handle = $1
+           WHERE id = $1
            RETURNING id`,
       [id],
     );
