@@ -3,9 +3,9 @@
 const jsonschema = require("jsonschema");
 
 const express = require("express");
-const { BadRequestError } = require("../expressError");
-const { ensureAdmin } = require("../middleware/auth");
-const Job = require("../model/job");
+const { BadRequestError, NotFoundError } = require("../expressError");
+const { ensureAdmin, ensureAdminOrCorrectUser } = require("../middleware/auth");
+const Job = require("../models/job");
 const jobNewSchema = require("../schemas/jobNew.json");
 const jobUpdateSchema = require("../schemas/jobUpdate.json");
 const jobSearchSchema = require("../schemas/jobSearch.json");
@@ -31,14 +31,14 @@ router.get("/", async function (req, res, next) {
   const query = req.query;
   if (query.minSalary !== undefined) {
     query.minSalary = +query.minSalary;
-    query.hasEquity = query.hasEquity === "true";
   }
+  query.hasEquity = query.hasEquity === "true";
 
   try {
     const validator = jsonschema.validate(query, jobSearchSchema);
     if (!validator.valid) {
       const errors = validator.errors.map((e) => e.stack);
-      throw new BadRequestError(errors);
+      throw new NotFoundError(errors);
     }
 
     const jobs = await Job.findAll(query);
@@ -57,7 +57,7 @@ router.get("/:id", async function (req, res, next) {
   }
 });
 
-router.patch("/:id", async function (req, res, next) {
+router.patch("/:id", ensureAdmin, async function (req, res, next) {
   try {
     const validator = jsonschema.validate(req.body, jobUpdateSchema);
     if (!validator.valid) {
@@ -80,3 +80,5 @@ router.delete("/:id", ensureAdmin, async function (req, res, next) {
     return next(err);
   }
 });
+
+module.exports = router;

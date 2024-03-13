@@ -45,7 +45,7 @@ class Company {
    * */
 
   static async findAll(searchFilters = {}) {
-    const query = `SELECT handle,
+    let query = `SELECT handle,
                   name,
                   description,
                   num_employees AS "numEmployees",
